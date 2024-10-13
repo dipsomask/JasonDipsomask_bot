@@ -17,13 +17,13 @@ jd = telebot.TeleBot(botToken.TOKEN)
 mode = True # user - True / manager - False
 
 if(mode):
-    admin = 'defaulton'
-    admin_lnk = 'https://t.me/defaulton'
-    admin_chat_id = 5265835810 
+    admin = botToken.admin1
+    admin_lnk = botToken.admin_lnk1
+    admin_chat_id = botToken.admin_chat_id1 
 else:
-    admin = 'dipsomask'
-    admin_lnk = 'https://t.me/dipsomask'
-    admin_chat_id = 1445787721
+    admin = botToken.admin2
+    admin_lnk = botToken.admin_lnk2
+    admin_chat_id = botToken.admin_chat_id2
 
 
 with open(pathes.mainfile_copy_json) as jsf:
