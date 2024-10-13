@@ -5,6 +5,7 @@ import os
 import json
 import shutil
 import time
+from openpyxl import load_workbook
 
 import pathes
 import botToken
@@ -18,14 +19,14 @@ mode = True # user - True / manager - False
 if(mode):
     admin = 'defaulton'
     admin_lnk = 'https://t.me/defaulton'
-    admin_chat_id = 5265835810
+    admin_chat_id = 5265835810 
 else:
     admin = 'dipsomask'
     admin_lnk = 'https://t.me/dipsomask'
     admin_chat_id = 1445787721
 
 
-with open('/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/mainfile-copy.json') as jsf:
+with open(pathes.mainfile_copy_json) as jsf:
     allmaindata = json.load(jsf)
 
 
@@ -40,16 +41,6 @@ new_user = {
 }
 
 #
-
-
-#def bot_polling():
-    #while True:
-     #   try:
-      #      print("Запуск опроса бота...")
-       #     jd.polling(none_stop=True)
-        #except Exception as e:
-         #   print(f"Ошибка: {e}")
-          #  time.sleep(5)  # Задержка перед повторной попыткой
 
 
 def saveChatId(chat_id, user):
@@ -75,7 +66,7 @@ def parseMainDataJson(position):
 
 
 def parseBasket(user):
-    filepath = '/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/baskets/user-basket-' + str(user) + '.json'
+    filepath = pathes.baskets_user_basket_json + str(user) + '.json'
     if(not os.path.exists(filepath)):
         return "Корзина пуста"
     string_data = ""
@@ -92,28 +83,51 @@ def parseBasket(user):
 
 
 def makeXLSXuserBasket(user):
-    filepath = '/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/baskets/user-basket-' + str(user) + '.json'
-    xlsx_filepath = '/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/baskets-in-agreement/xlsx/user-basket-' + str(user) + '.xlsx'
-    json_filepath = '/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/baskets-in-agreement/json/user-basket-' + str(user) + '.json'
+    filepath = pathes.baskets_user_basket_json + str(user) + '.json'
+    xlsx_filepath = pathes.baskets_in_agreement_xlsx + str(user) + '.xlsx'
+    json_filepath = pathes.baskets_in_agreement_json + str(user) + '.json'
     with open(filepath, 'r', encoding='utf-8') as file:
         data = json.load(file)
 
-    items = []
-    for key in data:
-        items.extend(data[key])
+    filtered_data = []
+    control_summ = 0
 
-    filtered_items = [item for item in items if item]
+    for key, items in data.items():
+        for item in items:
+            if 'Цена_наша' in item:
+                control_summ += item['Сумма'] 
+            filtered_item = {k: v for k, v in item.items() if k != 'Цена'}
+            filtered_data.append(filtered_item)
 
-    df = pd.DataFrame(filtered_items)
+    last_str = {
+            "Номер":"",
+            "Наименование товара": "",
+            "Цена_наша":"",
+            "Кол-во": "",
+            "Ед. изм.": "И того",
+            "Сумма": control_summ
+        }
+    
+    filtered_data.append(last_str)
+
+    df = pd.DataFrame(filtered_data)
     df.to_excel(xlsx_filepath, index=False)
+
+    workbook = load_workbook(xlsx_filepath)
+    sheet = workbook.active
+
+    sheet.column_dimensions['B'].width = 42.67 
+
+    workbook.save(xlsx_filepath)
+
     shutil.move(filepath, json_filepath)
 
     return xlsx_filepath
 
 
 def makeXLSXourBasket():
-    json_filepath = '/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/our-basket.json'
-    if(not os.path.exists(json_filepath)):
+    json_filepath = pathes.our_basket_json
+    if not os.path.exists(json_filepath):
         return "Нет заказов"
     else:
         with open(json_filepath, 'r', encoding='utf-8') as file:
@@ -124,30 +138,42 @@ def makeXLSXourBasket():
             items.extend(data[key])
 
         control_summ = 0
+
+        filtered_items = []
         for item in items:
-            control_summ += item["Сумма"]
+            if 'Сумма' in item:
+                control_summ += item['Сумма']
+            filtered_item = {k: v for k, v in item.items() if k != 'Цена_наша'}
+            filtered_items.append(filtered_item)
 
         last_str = {
             "Наименование товара": "",
             "Цена": "",
             "Кол-во": "",
-            "Ед. изм.": "И того",
+            "Ед. изм.": "Итого",
             "Сумма": control_summ
         }
 
-        items.append(last_str)
-        
-        xlsx_filepath = '/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/our-basket.xlsx'
-        df = pd.DataFrame(items)
+        filtered_items.append(last_str)
+
+        xlsx_filepath = pathes.our_basket_xlsx
+        df = pd.DataFrame(filtered_items)
         df.to_excel(xlsx_filepath, index=False)
+
+        workbook = load_workbook(xlsx_filepath)
+        sheet = workbook.active
+
+        sheet.column_dimensions['B'].width = 42.67 
+
+        workbook.save(xlsx_filepath)
 
         return xlsx_filepath
 
 
 def addProductToUserBaasket(user, firm, product):
-    filepath = '/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/baskets/user-basket-' + str(user) + '.json'
+    filepath = pathes.baskets_user_basket_json + str(user) + '.json'
     if(not os.path.exists(filepath)):
-        source_file = '/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/user-basket-.json'
+        source_file = pathes.user_basket_json
         shutil.copy(source_file, filepath)
 
     for blok in allmaindata[firm]:
@@ -177,7 +203,7 @@ def addProductToUserBaasket(user, firm, product):
 
 
 def parseAgreements():
-    dirpath = '/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/baskets-in-agreement/xlsx/'
+    dirpath = pathes.agreement_dir_xlsx
     files = []
     for root, dirs, filenames in os.walk(dirpath):
         files.extend(filenames)
@@ -186,8 +212,8 @@ def parseAgreements():
 
 
 def aplyOrNot(user, mode):
-    sourse_json = '/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/baskets-in-agreement/json/user-basket-' + user + '.json'
-    sourse_xlsx = '/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/baskets-in-agreement/xlsx/user-basket-' + user + '.xlsx'
+    sourse_json = pathes.baskets_in_agreement_json + user + '.json'
+    sourse_xlsx = pathes.baskets_in_agreement_xlsx + user + '.xlsx'
     if(not mode):
         if(os.path.exists(sourse_json)):
             os.remove(sourse_json)
@@ -195,11 +221,11 @@ def aplyOrNot(user, mode):
             os.remove(sourse_xlsx)
         return "Заявка отклонена."
     else:
-        ourbasket_json = '/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/our-basket.json'
+        ourbasket_json = pathes.our_basket_json
         if(not os.path.exists(ourbasket_json)):
-            source_file = '/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/our-basket-empty.json'
+            source_file = pathes.our_basket_empty_json
             shutil.copy(source_file, ourbasket_json)
-        user_agreement = '/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/baskets-in-agreement/json/user-basket-' + user + '.json'
+        user_agreement = pathes.baskets_in_agreement_json + user + '.json'
 
         with open(user_agreement, 'r', encoding='utf-8') as file:
             user_agreement_data = json.load(file)
@@ -219,8 +245,8 @@ def aplyOrNot(user, mode):
         with open(ourbasket_json, 'w', encoding='utf-8') as json_file:
             json.dump(ourbasket_json_data, json_file, ensure_ascii=False, indent=4)
 
-        dest_json = '/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/archive-baskets/user-baskets/json/user-basket-' + user + '.json'
-        dest_xlsx = '/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/archive-baskets/user-baskets/xlsx/user-basket-' + user + '.xlsx'
+        dest_json = pathes.archive_user_basket_json + user + '.json'
+        dest_xlsx = pathes.archive_user_basket_xlsx + user + '.xlsx'
         shutil.move(sourse_json, dest_json)
         shutil.move(sourse_xlsx, dest_xlsx)
 
@@ -399,7 +425,7 @@ def func(message):
                 jd.send_message(message.chat.id, text=answer)
 
         elif(message.text == "Очистить корзину"):
-            filepath = filepath = '/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/baskets/user-basket-' + str(user) + '.json'
+            filepath = filepath = pathes.baskets_user_basket_json + str(user) + '.json'
             if(not os.path.exists(filepath)):
                 jd.send_message(message.chat.id, text="Корзина пуста")
             else:
@@ -413,7 +439,7 @@ def func(message):
         
 
         elif(message.text == "Создать заявку"):
-            filepath = '/home/dipsomask/Документы/JasonDipsomask_bot//home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/baskets-in-agreement/json/user-basket-' + user + '.json'
+            filepath = pathes.baskets_in_agreement_json + user + '.json'
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
             btn1 = types.KeyboardButton("Корзина")
             btn2 = types.KeyboardButton("Каталог")
@@ -433,7 +459,7 @@ def func(message):
     else:
         if(message.text == "Показать заявки"):
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-            filepath = '/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/baskets-in-agreement/xlsx/'
+            filepath = '/home/dipsomask/Документы/JasonDipsomask_bot/jdvenv/baskets-in-agreement/xlsx/'
             agrimenst = parseAgreements()
             if agrimenst:
                 for filename in agrimenst:
@@ -453,7 +479,7 @@ def func(message):
         
         elif(message.text.startswith("Обработать заявку ")):
             filename = message.text.replace("Обработать заявку ", "")
-            filepath = '/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/baskets-in-agreement/xlsx/' + filename
+            filepath = '/home/dipsomask/Документы/JasonDipsomask_bot/jdvenv/baskets-in-agreement/xlsx/' + filename
             agreementuser = (filename.replace(".xlsx", "")).replace("user-basket-", "")
             with open(filepath, 'rb') as document:
                 caption_text = 'Заявка от клиента: ' + 'https://t.me/' + agreementuser
@@ -466,7 +492,7 @@ def func(message):
 
         elif(message.text.startswith("Одобрить заявку ")):
             filename = message.text.replace("Одобрить заявку ", "")
-            filepath = '/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/baskets-in-agreement/xlsx/' + filename
+            filepath = '/home/dipsomask/Документы/JasonDipsomask_bot/jdvenv/baskets-in-agreement/xlsx/' + filename
             agreementuser = (filename.replace(".xlsx", "")).replace("user-basket-", "")
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
             markup.add(btnToMain)
@@ -476,7 +502,7 @@ def func(message):
             
         elif(message.text.startswith("Отклонить заявку ")):
             filename = message.text.replace("Отклонить заявку ", "")
-            filepath = '/home/dipsomask/Документы/JasonDipsomask_bot/venvjdbot/baskets-in-agreement/xlsx/' + filename
+            filepath = '/home/dipsomask/Документы/JasonDipsomask_bot/jdvenv/baskets-in-agreement/xlsx/' + filename
             agreementuser = (filename.replace(".xlsx", "")).replace("user-basket-", "")
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
             markup.add(btnToMain)
