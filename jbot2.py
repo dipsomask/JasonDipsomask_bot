@@ -14,7 +14,7 @@ import botToken
 
 jd = telebot.TeleBot(botToken.TOKEN)
 
-mode = True # user - True / manager - False
+mode = True # user = True / manager = False
 
 if(mode):
     admin = botToken.admin1
