@@ -31,7 +31,6 @@ with open(pathes.mainfile_copy_json) as jsf:
 
 
 last_firm = ""
-last_agreement_to_confirm = ""
 
 btnToMain = types.KeyboardButton("Главная")
 
